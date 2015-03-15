@@ -25,6 +25,7 @@
 @property (weak, nonatomic) IBOutlet UILabel *startLabel;
 @property (weak, nonatomic) IBOutlet UIScrollView *scrollView;
 @property (weak, nonatomic) IBOutlet UIImageView *titleImageView;
+@property (weak, nonatomic) IBOutlet UILabel *numberLabel;
 @property (strong, nonatomic) NSURL *boomSoundUrl;
 @property (strong, nonatomic) NSURL *timeUpSoundUrl;
 
@@ -82,11 +83,14 @@
 
     self.backgroundPlayer = [self audioPlayerWithUrl:backgroundMusicUrl];
     self.backgroundPlayer.numberOfLoops = -1;
-    [self.backgroundPlayer play];
 
     [self calcPoints];
 
-    _startLabel.text = [NSString stringWithFormat:@"START"];
+    self.startLabel.text = [NSString stringWithFormat:@"START"];
+}
+
+- (BOOL)prefersStatusBarHidden {
+    return YES;
 }
 
 - (void)viewDidAppear:(BOOL)animated {
@@ -194,13 +198,19 @@
     // gameover
     if (s <= 0){
         [timer invalidate];
-        _timeupLabel.text = [NSString stringWithFormat:@"TIME UP!"];
-        _startLabel.text = [NSString stringWithFormat:@"REPLAY"];
+
+        self.timeupLabel.text = [NSString stringWithFormat:@"TIME UP!"];
+        self.startLabel.text = [NSString stringWithFormat:@"REPLAY"];
         checkPoint = 0;
         score = 0;
-        [self.fireballImage stopAnimating];
+
+        [self.backgroundPlayer stop];
         [self.timeUpMusic play];
 
+        CGPoint arcPoint = [self getArcPointFromAngle:-M_PI_2];
+
+        self.fireballImage.center = arcPoint;
+        self.fireballImage.transform = CGAffineTransformMakeRotation(-M_PI_2 + ( M_PI / 3));
     }
 
     self.timeLabel.text = [NSString stringWithFormat:@"%2.1f", s];
@@ -223,10 +233,14 @@
     if ([self checkPoint:pos index:checkPoint]) {
         checkPoint = 1;
 
-        _scoreLabel.text = [NSString stringWithFormat:@"%02d", score];
-        _timeupLabel.text = [NSString stringWithFormat:@""];
-        _startLabel.text = [NSString stringWithFormat:@""];
+        self.numberLabel.text = [NSString stringWithFormat:@"%d", checkPoint];
+        self.scoreLabel.text = [NSString stringWithFormat:@"%02d", score];
+        self.timeupLabel.text = [NSString stringWithFormat:@""];
+        self.startLabel.text = [NSString stringWithFormat:@""];
+
         [self.fireballImage startAnimating];
+        [self.backgroundPlayer play];
+
         [NSTimer scheduledTimerWithTimeInterval:0.1f target:self selector:@selector(timeCount:) userInfo:nil repeats:YES ];
 
         startDate = [NSDate date];
@@ -235,7 +249,7 @@
 
 
 - (void)touchesMoved:(NSSet *)touches withEvent:(UIEvent *)event {
-    float s = [ _timeLabel.text floatValue];
+    float s = [self.timeLabel.text floatValue];
     if (s != 0) {
         CGPoint pos = [[touches anyObject] locationInView:self.view];
         CGFloat radians = [self getAngleFromPoint:pos];
@@ -259,8 +273,10 @@
 
                 checkPoint = 1;
                 score += 1;
-                _scoreLabel.text = [NSString stringWithFormat:@"%02d", score];
+                self.scoreLabel.text = [NSString stringWithFormat:@"%02d", score];
             }
+
+            self.numberLabel.text = [NSString stringWithFormat:@"%d", checkPoint];
         }
     }
 }
